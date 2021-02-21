@@ -64,6 +64,7 @@ request(url, function (error, response, body) {
 
         text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C \n`;
         text += `Feels Like: ${weather.main.feels_like.toFixed(1)}C\n`;
+        text += `Pressure: ${weather.main.pressure} hPa\n`;
         text += `Humidity: ${weather.main.humidity}%\n`;
         text += `Visibility: ${weather.visibility / 1000} km\n`;
         text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
