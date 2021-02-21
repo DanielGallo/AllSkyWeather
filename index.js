@@ -67,7 +67,7 @@ request(url, function (error, response, body) {
         text += `Humidity: ${weather.main.humidity}%\n`;
         text += `Visibility: ${weather.visibility / 1000} km\n`;
         text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
-        text += `Wind Direction: ${compass.cardinalFromDegree(windDirection)}\n`;
+        text += `Wind Direction: ${compass.cardinalFromDegree(windDirection, compass.CardinalSubset.Intercardinal)}\n`;
         text += `Wind Gust: ${(windGust * 3.6).toFixed(0)} km/h\n`;
         text += `Rain (Last 1 Hour): ${rain1} mm\n`;
         text += `Rain (Last 3 Hours): ${rain3} mm\n`;
