@@ -21,6 +21,11 @@ if (!argv.region) {
     return;
 }
 
+if (!argv.output) {
+    console.error('No Output file path defined (example: "--output=/path/to/weather.txt")');
+    return;
+}
+
 let apiKey = argv.key;
 let city = argv.city;
 let url = `http://api.openweathermap.org/data/2.5/weather?units=metric&q=${city}&appid=${apiKey}`
@@ -59,6 +64,6 @@ request(url, function (error, response, body) {
         text += `Sunrise: ${format(sunriseLocal, 'HH:mm', { timeZone: argv.region })}am\n`;
         text += `Sunset: ${format(sunsetLocal, 'HH:mm', { timeZone: argv.region })}pm\n`;
 
-        fs.outputFileSync('weather.txt', text);
+        fs.outputFileSync(argv.output, text);
     }
 });
