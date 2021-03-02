@@ -15,6 +15,10 @@ On the machine or device where you need to use this script, do the following:
   
   `node index.js --output=/home/pi/allskyweather/weather.txt --key=YOUR_API_KEY --city=London --region=Europe/London`
 
+For example, I use this Cron entry for running the script every even minute (every two minutes) on a Raspberry Pi (see the [documentation here](https://www.raspberrypi.org/documentation/linux/usage/cron.md) for how to set this up on Raspberry Pi):
+
+  `*/2 * * * * /usr/bin/node /home/pi/allskyweather/index.js --output=/home/pi/allskyweather/weather.txt --key=YOUR_API_KEY --city=London --region=Europe/London`
+
 ## Arguments
 
 - `--output` - The full path where to generate the text file
