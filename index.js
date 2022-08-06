@@ -62,7 +62,12 @@ request(url, function (error, response, body) {
         let sunsetUtc = new Date(weather.sys.sunset * 1000);
         let sunsetLocal = utcToZonedTime(sunsetUtc, argv.region);
 
-        text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C \n`;
+        // Include a display-friendly location name if specified as an extra argument
+        if (argv.location) {
+            text += `Location: ${argv.location}\n`;
+        }
+
+        text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C\n`;
         text += `Feels Like: ${weather.main.feels_like.toFixed(1)}C\n`;
         text += `Pressure: ${weather.main.pressure} hPa\n`;
         text += `Humidity: ${weather.main.humidity}%\n`;
