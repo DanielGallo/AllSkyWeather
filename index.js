@@ -31,64 +31,64 @@ let apiKey = argv.key;
 let city = argv.city;
 let url = `http://api.openweathermap.org/data/2.5/weather?units=metric&q=${city}&appid=${apiKey}`
 
-request(url, function (error, response, body) {
-    if (error){
-        console.error(error);
-    } else {
-        let weather = JSON.parse(body);
+// Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
+sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
+    request(url, function (error, response, body) {
+        if (error){
+            console.error(error);
+        } else {
+            let weather = JSON.parse(body);
 
-        var text = '',
-            windSpeed = 0,
-            windDirection = 'n/a',
-            windGust = 0,
-            rain1 = 0,
-            rain3 = 0;
+            var text = '',
+                windSpeed = 0,
+                windDirection = 'n/a',
+                windGust = 0,
+                rain1 = 0,
+                rain3 = 0;
 
-        if (weather.wind) {
-            windSpeed = weather.wind.speed;
-            windDirection = weather.wind.deg;
+            if (weather.wind) {
+                windSpeed = weather.wind.speed;
+                windDirection = weather.wind.deg;
 
-            if (weather.wind.gust) {
-                windGust = weather.wind.gust;
+                if (weather.wind.gust) {
+                    windGust = weather.wind.gust;
+                }
             }
-        }
 
-        if (weather.rain) {
-            rain1 = weather.rain["1h"].toFixed(1);
-            rain3 = weather.rain["3h"].toFixed(1);
-        }
-
-        let sunriseUtc = new Date(weather.sys.sunrise * 1000);
-        let sunriseLocal = utcToZonedTime(sunriseUtc, argv.region);
-        let sunsetUtc = new Date(weather.sys.sunset * 1000);
-        let sunsetLocal = utcToZonedTime(sunsetUtc, argv.region);
-
-        // Include a display-friendly location name if specified as an extra argument
-        if (argv.location) {
-            text += `Location: ${argv.location}\n`;
-        }
-
-        text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C\n`;
-        text += `Feels Like: ${weather.main.feels_like.toFixed(1)}C\n`;
-        text += `Outside Humidity: ${weather.main.humidity}%\n`;
-        text += `Pressure: ${weather.main.pressure} hPa\n`;
-        text += `Visibility: ${weather.visibility / 1000} km\n`;
-        text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
-        text += `Wind Direction: ${compass.cardinalFromDegree(windDirection, compass.CardinalSubset.Intercardinal)}\n`;
-        text += `Wind Gust: ${(windGust * 3.6).toFixed(0)} km/h\n`;
-        text += `Rain (Last 1 Hour): ${rain1} mm\n`;
-        text += `Rain (Last 3 Hours): ${rain3} mm\n`;
-        text += `Sunrise: ${format(sunriseLocal, 'HH:mm', { timeZone: argv.region })}\n`;
-        text += `Sunset: ${format(sunsetLocal, 'HH:mm', { timeZone: argv.region })}\n`;
-
-        // Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
-        sensor.read(22, 0, function(err, temperature, humidity) {
-            if (!err) {
-                text += `Case Temperature: ${(temperature).toFixed(1)}C\n`;
-                text += `Case Humidity: ${(humidity).toFixed(0)}%\n`;
+            if (weather.rain) {
+                rain1 = weather.rain["1h"].toFixed(1);
+                rain3 = weather.rain["3h"].toFixed(1);
             }
-        });
 
-        fs.outputFileSync(argv.output, text);
-    }
+            let sunriseUtc = new Date(weather.sys.sunrise * 1000);
+            let sunriseLocal = utcToZonedTime(sunriseUtc, argv.region);
+            let sunsetUtc = new Date(weather.sys.sunset * 1000);
+            let sunsetLocal = utcToZonedTime(sunsetUtc, argv.region);
+
+            // Include a display-friendly location name if specified as an extra argument
+            if (argv.location) {
+                text += `Location: ${argv.location}\n`;
+            }
+
+            text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C\n`;
+            text += `Feels Like: ${weather.main.feels_like.toFixed(1)}C\n`;
+            text += `Outside Humidity: ${weather.main.humidity}%\n`;
+            text += `Pressure: ${weather.main.pressure} hPa\n`;
+            text += `Visibility: ${weather.visibility / 1000} km\n`;
+            text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
+            text += `Wind Direction: ${compass.cardinalFromDegree(windDirection, compass.CardinalSubset.Intercardinal)}\n`;
+            text += `Wind Gust: ${(windGust * 3.6).toFixed(0)} km/h\n`;
+            text += `Rain (Last 1 Hour): ${rain1} mm\n`;
+            text += `Rain (Last 3 Hours): ${rain3} mm\n`;
+            text += `Sunrise: ${format(sunriseLocal, 'HH:mm', { timeZone: argv.region })}\n`;
+            text += `Sunset: ${format(sunsetLocal, 'HH:mm', { timeZone: argv.region })}\n`;
+
+            if (!sensorError) {
+                text += `Case Temperature: ${caseTemperature.toFixed(1)}C\n`;
+                text += `Case Humidity: ${caseHumidity.toFixed(0)}%\n`;
+            }
+
+            fs.outputFileSync(argv.output, text);
+        }
+    });
 });
