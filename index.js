@@ -3,6 +3,7 @@ const { utcToZonedTime, format } = require('date-fns-tz');
 const fs = require('fs-extra');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
+const sensor = require('node-dht-sensor');
 const argv = yargs(hideBin(process.argv)).argv;
 let request = require('request');
 
@@ -69,8 +70,8 @@ request(url, function (error, response, body) {
 
         text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C\n`;
         text += `Feels Like: ${weather.main.feels_like.toFixed(1)}C\n`;
+        text += `Outside Humidity: ${weather.main.humidity}%\n`;
         text += `Pressure: ${weather.main.pressure} hPa\n`;
-        text += `Humidity: ${weather.main.humidity}%\n`;
         text += `Visibility: ${weather.visibility / 1000} km\n`;
         text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
         text += `Wind Direction: ${compass.cardinalFromDegree(windDirection, compass.CardinalSubset.Intercardinal)}\n`;
@@ -79,6 +80,14 @@ request(url, function (error, response, body) {
         text += `Rain (Last 3 Hours): ${rain3} mm\n`;
         text += `Sunrise: ${format(sunriseLocal, 'HH:mm', { timeZone: argv.region })}\n`;
         text += `Sunset: ${format(sunsetLocal, 'HH:mm', { timeZone: argv.region })}\n`;
+
+        // Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
+        sensor.read(22, 0, function(err, temperature, humidity) {
+            if (!err) {
+                text += `Case Temperature: ${(temperature).toFixed(1)}C\n`;
+                text += `Case Humidity: ${(humidity).toFixed(0)}%\n`;
+            }
+        });
 
         fs.outputFileSync(argv.output, text);
     }
