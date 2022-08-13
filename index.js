@@ -1,9 +1,11 @@
 const compass = require('cardinal-direction');
 const { utcToZonedTime, format } = require('date-fns-tz');
-const fs = require('fs-extra');
+const fs =  require('fs');
+const fsExtra = require('fs-extra');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 const sensor = require('node-dht-sensor');
+const { exec } = require('child_process');
 const argv = yargs(hideBin(process.argv)).argv;
 let request = require('request');
 
@@ -30,6 +32,43 @@ if (!argv.output) {
 let apiKey = argv.key;
 let city = argv.city;
 let url = `http://api.openweathermap.org/data/2.5/weather?units=metric&q=${city}&appid=${apiKey}`
+const Devices = {
+    FAN: 0x01,
+    DEW_HEATER: 0x04
+};
+
+function i2cset(device, state) {
+    let power = 0x00;
+
+    if (state === 'on') {
+        power = 0xFF;
+    }
+
+    let command = `i2cset -y 1 0x11 ${device} ${power}`
+
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`error: ${error.message}`);
+        }
+
+        if (stderr) {
+            console.log(`stderr: ${stderr}`);
+        }
+    });
+}
+
+let cpuTemp = fs.readFileSync('/sys/class/thermal/thermal_zone0/temp');
+let cpuTemperature = cpuTemp / 1000;
+let fanState = '';
+
+// Turn on the case fan if the CPU temperature goes above this threshold
+if (cpuTemperature > 58) {
+    i2cset(Devices.FAN, 'on');
+    fanState = 'On';
+} else {
+    i2cset(Devices.FAN, 'off');
+    fanState = 'Off';
+}
 
 // Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
 sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
@@ -78,6 +117,9 @@ sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
                 text += `Case Humidity: ${caseHumidity.toFixed(0)}%\n`;
             }
 
+            text += `Case Fan: ${fanState}\n`;
+
+            text += `CPU Temperature: ${cpuTemperature.toFixed(1)}C\n`;
             text += `Pressure: ${weather.main.pressure} hPa\n`;
             text += `Visibility: ${weather.visibility / 1000} km\n`;
             text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
@@ -88,7 +130,7 @@ sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
             text += `Sunrise: ${format(sunriseLocal, 'HH:mm', { timeZone: argv.region })}\n`;
             text += `Sunset: ${format(sunsetLocal, 'HH:mm', { timeZone: argv.region })}\n`;
 
-            fs.outputFileSync(argv.output, text);
+            fsExtra.outputFileSync(argv.output, text);
         }
     });
 });
