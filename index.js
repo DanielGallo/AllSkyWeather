@@ -71,8 +71,13 @@ sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
             }
 
             text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C\n`;
-            text += `Feels Like: ${weather.main.feels_like.toFixed(1)}C\n`;
             text += `Outside Humidity: ${weather.main.humidity}%\n`;
+
+            if (!sensorError) {
+                text += `Case Temperature: ${caseTemperature.toFixed(1)}C\n`;
+                text += `Case Humidity: ${caseHumidity.toFixed(0)}%\n`;
+            }
+
             text += `Pressure: ${weather.main.pressure} hPa\n`;
             text += `Visibility: ${weather.visibility / 1000} km\n`;
             text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
@@ -82,11 +87,6 @@ sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
             text += `Rain (Last 3 Hours): ${rain3} mm\n`;
             text += `Sunrise: ${format(sunriseLocal, 'HH:mm', { timeZone: argv.region })}\n`;
             text += `Sunset: ${format(sunsetLocal, 'HH:mm', { timeZone: argv.region })}\n`;
-
-            if (!sensorError) {
-                text += `Case Temperature: ${caseTemperature.toFixed(1)}C\n`;
-                text += `Case Humidity: ${caseHumidity.toFixed(0)}%\n`;
-            }
 
             fs.outputFileSync(argv.output, text);
         }
