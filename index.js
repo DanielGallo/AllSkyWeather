@@ -70,6 +70,18 @@ if (cpuTemperature > 58) {
     fanState = 'Off';
 }
 
+// Turn on the dew heater in the evenings
+let hours = new Date().getHours();
+let dewHeaterState = '';
+
+if ((hours >= 18 && hours <= 23) || (hours >= 0 && hours <= 8)) {
+    i2cset(Devices.DEW_HEATER, 'on');
+    dewHeaterState = 'On';
+} else {
+    i2cset(Devices.DEW_HEATER, 'off');
+    dewHeaterState = 'Off';
+}
+
 // Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
 sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
     request(url, function (error, response, body) {
@@ -118,6 +130,7 @@ sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
             }
 
             text += `Case Fan: ${fanState}\n`;
+            text += `Dew Heater: ${dewHeaterState}\n`;
 
             text += `CPU Temperature: ${cpuTemperature.toFixed(1)}C\n`;
             text += `Pressure: ${weather.main.pressure} hPa\n`;
