@@ -77,84 +77,86 @@ async function getDeviceState(device) {
     return state;
 }
 
-let cpuTemp = fs.readFileSync('/sys/class/thermal/thermal_zone0/temp');
-let cpuTemperature = cpuTemp / 1000;
-let fanState = '';
+(async() => {
+    let cpuTemp = fs.readFileSync('/sys/class/thermal/thermal_zone0/temp');
+    let cpuTemperature = cpuTemp / 1000;
+    let fanState = '';
 
-// Turn on the case fan if the CPU temperature goes above this threshold
-if (cpuTemperature > 58) {
-    setDeviceState(Devices.FAN, 'on');
-    fanState = 'On';
-} else {
-    setDeviceState(Devices.FAN, 'off');
-    fanState = 'Off';
-}
+    // Turn on the case fan if the CPU temperature goes above this threshold
+    if (cpuTemperature > 58) {
+        setDeviceState(Devices.FAN, 'on');
+        fanState = 'On';
+    } else {
+        setDeviceState(Devices.FAN, 'off');
+        fanState = 'Off';
+    }
 
-// Get the dew heater state
-let dewHeaterState = getDeviceState(Devices.DEW_HEATER);
+    // Get the dew heater state
+    let dewHeaterState = await getDeviceState(Devices.DEW_HEATER);
 
-// Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
-sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
-    request(url, function (error, response, body) {
-        if (error){
-            console.error(error);
-        } else {
-            let weather = JSON.parse(body);
+    // Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
+    sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
+        request(url, function (error, response, body) {
+            if (error){
+                console.error(error);
+            } else {
+                let weather = JSON.parse(body);
 
-            var text = '',
-                windSpeed = 0,
-                windDirection = 'n/a',
-                windGust = 0,
-                rain1 = 0,
-                rain3 = 0;
+                let text = '',
+                    windSpeed = 0,
+                    windDirection = 'n/a',
+                    windGust = 0,
+                    rain1 = 0,
+                    rain3 = 0;
 
-            if (weather.wind) {
-                windSpeed = weather.wind.speed;
-                windDirection = weather.wind.deg;
+                if (weather.wind) {
+                    windSpeed = weather.wind.speed;
+                    windDirection = weather.wind.deg;
 
-                if (weather.wind.gust) {
-                    windGust = weather.wind.gust;
+                    if (weather.wind.gust) {
+                        windGust = weather.wind.gust;
+                    }
                 }
+
+                if (weather.rain) {
+                    rain1 = weather.rain["1h"].toFixed(1);
+                    rain3 = weather.rain["3h"].toFixed(1);
+                }
+
+                let sunriseUtc = new Date(weather.sys.sunrise * 1000);
+                let sunriseLocal = utcToZonedTime(sunriseUtc, argv.region);
+                let sunsetUtc = new Date(weather.sys.sunset * 1000);
+                let sunsetLocal = utcToZonedTime(sunsetUtc, argv.region);
+
+                // Include a display-friendly location name if specified as an extra argument
+                if (argv.location) {
+                    text += `Location: ${argv.location}\n`;
+                }
+
+                text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C\n`;
+                text += `Outside Humidity: ${weather.main.humidity}%\n`;
+
+                if (!sensorError) {
+                    text += `Case Temperature: ${caseTemperature.toFixed(1)}C\n`;
+                    text += `Case Humidity: ${caseHumidity.toFixed(0)}%\n`;
+                }
+
+                text += `Case Fan: ${fanState}\n`;
+                text += `Dew Heater: ${dewHeaterState}\n`;
+
+                text += `CPU Temperature: ${cpuTemperature.toFixed(1)}C\n`;
+                text += `Pressure: ${weather.main.pressure} hPa\n`;
+                text += `Visibility: ${weather.visibility / 1000} km\n`;
+                text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
+                text += `Wind Direction: ${compass.cardinalFromDegree(windDirection, compass.CardinalSubset.Intercardinal)}\n`;
+                text += `Wind Gust: ${(windGust * 3.6).toFixed(0)} km/h\n`;
+                text += `Rain (Last 1 Hour): ${rain1} mm\n`;
+                text += `Rain (Last 3 Hours): ${rain3} mm\n`;
+                text += `Sunrise: ${format(sunriseLocal, 'HH:mm', { timeZone: argv.region })}\n`;
+                text += `Sunset: ${format(sunsetLocal, 'HH:mm', { timeZone: argv.region })}\n`;
+
+                fsExtra.outputFileSync(argv.output, text);
             }
-
-            if (weather.rain) {
-                rain1 = weather.rain["1h"].toFixed(1);
-                rain3 = weather.rain["3h"].toFixed(1);
-            }
-
-            let sunriseUtc = new Date(weather.sys.sunrise * 1000);
-            let sunriseLocal = utcToZonedTime(sunriseUtc, argv.region);
-            let sunsetUtc = new Date(weather.sys.sunset * 1000);
-            let sunsetLocal = utcToZonedTime(sunsetUtc, argv.region);
-
-            // Include a display-friendly location name if specified as an extra argument
-            if (argv.location) {
-                text += `Location: ${argv.location}\n`;
-            }
-
-            text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C\n`;
-            text += `Outside Humidity: ${weather.main.humidity}%\n`;
-
-            if (!sensorError) {
-                text += `Case Temperature: ${caseTemperature.toFixed(1)}C\n`;
-                text += `Case Humidity: ${caseHumidity.toFixed(0)}%\n`;
-            }
-
-            text += `Case Fan: ${fanState}\n`;
-            text += `Dew Heater: ${dewHeaterState}\n`;
-
-            text += `CPU Temperature: ${cpuTemperature.toFixed(1)}C\n`;
-            text += `Pressure: ${weather.main.pressure} hPa\n`;
-            text += `Visibility: ${weather.visibility / 1000} km\n`;
-            text += `Wind Speed: ${(windSpeed * 3.6).toFixed(0)} km/h\n`;
-            text += `Wind Direction: ${compass.cardinalFromDegree(windDirection, compass.CardinalSubset.Intercardinal)}\n`;
-            text += `Wind Gust: ${(windGust * 3.6).toFixed(0)} km/h\n`;
-            text += `Rain (Last 1 Hour): ${rain1} mm\n`;
-            text += `Rain (Last 3 Hours): ${rain3} mm\n`;
-            text += `Sunrise: ${format(sunriseLocal, 'HH:mm', { timeZone: argv.region })}\n`;
-            text += `Sunset: ${format(sunsetLocal, 'HH:mm', { timeZone: argv.region })}\n`;
-
-            fsExtra.outputFileSync(argv.output, text);
-        }
+        });
     });
-});
+})();
