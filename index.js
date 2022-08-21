@@ -44,7 +44,7 @@ function i2cset(device, state) {
         power = 0xFF;
     }
 
-    let command = `i2cset -y 1 0x11 ${device} ${power}`
+    let command = `i2cset -y 1 0x11 ${device} ${power}`;
 
     exec(command, (error, stdout, stderr) => {
         if (error) {
@@ -55,6 +55,30 @@ function i2cset(device, state) {
             console.log(`stderr: ${stderr}`);
         }
     });
+}
+
+function i2cget(device) {
+    let command = `i2cget -y 1 0x11 ${device}`;
+
+    let state = 'Off';
+
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`i2cget error: ${error.message}`);
+        }
+
+        if (stderr) {
+            console.log(`i2cget stderr: ${stderr}`);
+        }
+
+        console.log(`i2cget stdout: ${stdout}`);
+
+        if (stdout.toLowerCase().trim() === '0xff') {
+            state = 'On';
+        }
+    });
+
+    return state;
 }
 
 let cpuTemp = fs.readFileSync('/sys/class/thermal/thermal_zone0/temp');
@@ -70,17 +94,8 @@ if (cpuTemperature > 58) {
     fanState = 'Off';
 }
 
-// Turn on the dew heater in the evenings
-let hours = new Date().getHours();
-let dewHeaterState = '';
-
-if ((hours >= 18 && hours <= 23) || (hours >= 0 && hours <= 8)) {
-    i2cset(Devices.DEW_HEATER, 'on');
-    dewHeaterState = 'On';
-} else {
-    i2cset(Devices.DEW_HEATER, 'off');
-    dewHeaterState = 'Off';
-}
+// Get the dew heater state
+let dewHeaterState = i2cget(Devices.DEW_HEATER);
 
 // Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
 sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
