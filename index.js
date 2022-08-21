@@ -45,7 +45,7 @@ function setDeviceState(device, state) {
         power = 0xFF;
     }
 
-    let command = `i2cset -y 1 0x11 ${device} ${power}`;
+    let command = `sudo i2cset -y 1 0x11 ${device} ${power}`;
 
     exec(command, (error, stdout, stderr) => {
         if (error) {
@@ -59,7 +59,7 @@ function setDeviceState(device, state) {
 }
 
 async function getDeviceState(device) {
-    let command = `i2cget -y 1 0x11 ${device}`;
+    let command = `sudo i2cget -y 1 0x11 ${device}`;
     let state = 'Off';
 
     const { stdout, stderr } = await exec(command);
