@@ -5,7 +5,7 @@ const fsExtra = require('fs-extra');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 const sensor = require('node-dht-sensor');
-const { exec } = require('child_process');
+const { exec } = require('promisify-child-process');
 const argv = yargs(hideBin(process.argv)).argv;
 let request = require('request');
 
@@ -31,13 +31,14 @@ if (!argv.output) {
 
 let apiKey = argv.key;
 let city = argv.city;
-let url = `http://api.openweathermap.org/data/2.5/weather?units=metric&q=${city}&appid=${apiKey}`
+let url = `http://api.openweathermap.org/data/2.5/weather?units=metric&q=${city}&appid=${apiKey}`;
+
 const Devices = {
     FAN: 0x01,
     DEW_HEATER: 0x04
 };
 
-function i2cset(device, state) {
+function setDeviceState(device, state) {
     let power = 0x00;
 
     if (state === 'on') {
@@ -57,26 +58,21 @@ function i2cset(device, state) {
     });
 }
 
-function i2cget(device) {
+async function getDeviceState(device) {
     let command = `i2cget -y 1 0x11 ${device}`;
-
     let state = 'Off';
 
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.log(`i2cget error: ${error.message}`);
-        }
+    const { stdout, stderr } = await exec(command);
 
-        if (stderr) {
-            console.log(`i2cget stderr: ${stderr}`);
-        }
+    if (stderr) {
+        console.log(`i2cget stderr: ${stderr}`);
+    }
 
-        console.log(`i2cget stdout: ${stdout}`);
+    console.log(`i2cget stdout: ${stdout}`);
 
-        if (stdout.toLowerCase().trim() === '0xff') {
-            state = 'On';
-        }
-    });
+    if (stdout.replace(/[\r\n]/gm, '').toLowerCase().trim() === '0xff') {
+        state = 'On';
+    }
 
     return state;
 }
@@ -87,15 +83,15 @@ let fanState = '';
 
 // Turn on the case fan if the CPU temperature goes above this threshold
 if (cpuTemperature > 58) {
-    i2cset(Devices.FAN, 'on');
+    setDeviceState(Devices.FAN, 'on');
     fanState = 'On';
 } else {
-    i2cset(Devices.FAN, 'off');
+    setDeviceState(Devices.FAN, 'off');
     fanState = 'Off';
 }
 
 // Get the dew heater state
-let dewHeaterState = i2cget(Devices.DEW_HEATER);
+let dewHeaterState = getDeviceState(Devices.DEW_HEATER);
 
 // Get the temperature and humidity of the AllSky Camera enclosure (separate sensor)
 sensor.read(22, 0, function(sensorError, caseTemperature, caseHumidity) {
