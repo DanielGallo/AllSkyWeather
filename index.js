@@ -34,8 +34,8 @@ let city = argv.city;
 let url = `http://api.openweathermap.org/data/2.5/weather?units=metric&q=${city}&appid=${apiKey}`;
 
 const Devices = {
-    FAN: 0x01,
-    DEW_HEATER: 0x04
+    DEW_HEATER: 0x01,
+    FAN: 0x04
 };
 
 function setDeviceState(device, state) {
@@ -49,11 +49,11 @@ function setDeviceState(device, state) {
 
     exec(command, (error, stdout, stderr) => {
         if (error) {
-            console.log(`error: ${error.message}`);
+            console.log(`setDeviceState error: ${error.message}`);
         }
 
         if (stderr) {
-            console.log(`stderr: ${stderr}`);
+            console.log(`setDeviceState stderr: ${stderr}`);
         }
     });
 }
@@ -65,10 +65,10 @@ async function getDeviceState(device) {
     const { stdout, stderr } = await exec(command);
 
     if (stderr) {
-        console.log(`i2cget stderr: ${stderr}`);
+        console.log(`getDeviceState stderr: ${stderr}`);
     }
 
-    console.log(`i2cget stdout: ${stdout}`);
+    console.log(`getDeviceState stdout: ${stdout}`);
 
     if (stdout.replace(/[\r\n]/gm, '').toLowerCase().trim() === '0xff') {
         state = 'On';
@@ -83,7 +83,7 @@ async function getDeviceState(device) {
     let fanState = '';
 
     // Turn on the case fan if the CPU temperature goes above this threshold
-    if (cpuTemperature > 58) {
+    if (cpuTemperature > 57) {
         setDeviceState(Devices.FAN, 'on');
         fanState = 'On';
     } else {
