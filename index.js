@@ -122,8 +122,13 @@ async function getDeviceState(device) {
             }
 
             if (weather.rain) {
-                rain1 = weather.rain["1h"].toFixed(1);
-                rain3 = weather.rain["3h"].toFixed(1);
+                if (weather.rain["1h"]) {
+                    rain1 = weather.rain["1h"].toFixed(1);
+                }
+
+                if (weather.rain["3h"]) {
+                    rain3 = weather.rain["3h"].toFixed(1);
+                }
             }
 
             let sunriseUtc = new Date(weather.sys.sunrise * 1000);
