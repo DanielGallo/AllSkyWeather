@@ -144,7 +144,9 @@ async function getDeviceState(device) {
             text += `Outside Temperature: ${weather.main.temp.toFixed(1)}C\n`;
             text += `Outside Humidity: ${weather.main.humidity}%\n`;
 
-            if (temperatureSensor && temperatureSensor.temperature) {
+            if (temperatureSensor
+                && temperatureSensor.temperature !== null
+                && temperatureSensor.temperature !== undefined) {
                 text += `Case Temperature: ${temperatureSensor.temperature.toFixed(1)}C\n`;
                 text += `Case Humidity: ${temperatureSensor.humidity.toFixed(0)}%\n`;
             }
